@@ -31,7 +31,7 @@ public class SimpleJDBCRepository {
 
     public Long createUser() throws SQLException {
         User newUser = User.builder().id(1L).firstName("John").lastName("Doe").age(30).build();
-        try(var connection = CustomDataSource.getInstance().getConnection()){
+        try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(createUserSQL);
             ps.setLong(1, newUser.getId());
             ps.setString(2,newUser.getFirstName());
@@ -43,7 +43,7 @@ public class SimpleJDBCRepository {
     }
 
     public User findUserById(Long userId) throws SQLException {
-        try(var connection = CustomDataSource.getInstance().getConnection()){
+        try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(findUserByIdSQL);
             ps.setLong(1, userId);
             ResultSet rs = ps.executeQuery();
@@ -53,7 +53,7 @@ public class SimpleJDBCRepository {
     }
 
     public User findUserByName(String userName) throws SQLException {
-        try(var connection = CustomDataSource.getInstance().getConnection()){
+        try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(findUserByNameSQL);
             ps.setString(1, userName);
             ResultSet rs = ps.executeQuery();
@@ -63,7 +63,7 @@ public class SimpleJDBCRepository {
     }
 
     public List<User> findAllUser() throws SQLException {
-        try(var connection = CustomDataSource.getInstance().getConnection()){
+        try(Connection connection = CustomDataSource.getInstance().getConnection()){
             st = connection.createStatement();
             ResultSet rs = st.executeQuery(findAllUserSQL);
             List<User> users = new ArrayList<>();
@@ -77,7 +77,7 @@ public class SimpleJDBCRepository {
 
     public User updateUser() throws SQLException {
         User newUser = User.builder().id(1L).firstName("Mike").lastName("Ray").age(26).build();
-        try(var connection = CustomDataSource.getInstance().getConnection()){
+        try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(updateUserSQL);
             ps.setString(1,newUser.getFirstName());
             ps.setString(2,newUser.getLastName());
@@ -89,7 +89,7 @@ public class SimpleJDBCRepository {
     }
 
     private void deleteUser(Long userId) throws SQLException {
-        try(var connection = CustomDataSource.getInstance().getConnection()){
+        try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(deleteUser);
             ps.setLong(1, userId);
             ps.executeUpdate();
