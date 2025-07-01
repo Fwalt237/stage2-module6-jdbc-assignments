@@ -1,113 +1,129 @@
 package jdbc;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
 public class SimpleJDBCRepository {
 
-    private Connection connection = null;
-    private PreparedStatement ps = null;
-    private Statement st = null;
-
-    private static final String createUserSQL = "INSERT INTO myusers (id, firstName,lastName,age) VALUES (?, ?, ?, ?)";
-    private static final String updateUserSQL = "UPDATE myusers SET firstName=?, lastName=?, age=? WHERE id=?";
-    private static final String deleteUser = "DELETE FROM myusers WHERE id=?";
-    private static final String findUserByIdSQL = "SELECT * FROM myusers WHERE id=?";
-    private static final String findUserByNameSQL = "SELECT * FROM myusers WHERE firstName=?";
+    private static final String createUserSQL = "INSERT INTO myusers (firstname, lastname, age) VALUES (?, ?, ?) RETURNING id";
+    private static final String updateUserSQL = "UPDATE myusers SET firstname = ?, lastname = ?, age = ? WHERE id = ?";
+    private static final String deleteUserSQL = "DELETE FROM myusers WHERE id = ?";
+    private static final String findUserByIdSQL = "SELECT * FROM myusers WHERE id = ?";
+    private static final String findUserByNameSQL = "SELECT * FROM myusers WHERE firstname = ?";
     private static final String findAllUserSQL = "SELECT * FROM myusers";
 
-    public Long createUser(User newUser)  {
-        try(Connection connection = CustomDataSource.getInstance().getConnection()){
-            ps = connection.prepareStatement(createUserSQL);
-            ps.setLong(1, newUser.getId());
-            ps.setString(2,newUser.getFirstName());
-            ps.setString(3,newUser.getLastName());
-            ps.setInt(4,newUser.getAge());
-            ps.executeUpdate();
-            return newUser.getId();
-        }catch (SQLException e) {
-            throw new RuntimeException("Failed to create user", e);
-        }
+    private final CustomDataSource dataSource;
+
+    public SimpleJDBCRepository() {
+        this.dataSource = CustomDataSource.getInstance();
     }
 
+    public Long createUser(User newUser) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(createUserSQL)) {
 
-    public User findUserById(Long userId) {
-        try(Connection connection = CustomDataSource.getInstance().getConnection()){
-            ps = connection.prepareStatement(findUserByIdSQL);
-            ps.setLong(1, userId);
+            ps.setString(1, newUser.getFirstName());
+            ps.setString(2, newUser.getLastName());
+            ps.setInt(3, newUser.getAge());
+
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                return User.builder()
-                        .id(rs.getLong(1))
-                        .firstName(rs.getString(2))
-                        .lastName(rs.getString(3))
-                        .age(rs.getInt(4))
-                        .build();
-            }else{
-            return null;} // User not found
+                long id = rs.getLong(1);
+                newUser.setId(id);
+                return id;
+            }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to find user by ID", e);
+            e.printStackTrace();
         }
+        return null;
     }
 
-    public User findUserByName(String userName){
-        try(Connection connection = CustomDataSource.getInstance().getConnection()){
-            ps = connection.prepareStatement(findUserByNameSQL);
+    public User findUserById(Long userId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(findUserByIdSQL)) {
+
+            ps.setLong(1, userId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return mapResultSetToUser(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public User findUserByName(String userName) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(findUserByNameSQL)) {
+
             ps.setString(1, userName);
             ResultSet rs = ps.executeQuery();
-            rs.next();
-            return User.builder().id(rs.getLong(1)).firstName(rs.getString(2)).lastName(rs.getString(3)).age(rs.getInt(4)).build();
-        }catch (SQLException e) {
-            throw new RuntimeException("Failed to find user by Name", e);
+
+            if (rs.next()) {
+                return mapResultSetToUser(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        return null;
     }
 
     public List<User> findAllUser() {
-        try(Connection connection = CustomDataSource.getInstance().getConnection()){
-            st = connection.createStatement();
+        List<User> users = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             Statement st = connection.createStatement()) {
+
             ResultSet rs = st.executeQuery(findAllUserSQL);
-            List<User> users = new ArrayList<>();
-            while(rs.next()){
-                User user = User.builder().id(rs.getLong(1)).firstName(rs.getString(2)).lastName(rs.getString(3)).age(rs.getInt(4)).build();
-                users.add(user);
+
+            while (rs.next()) {
+                users.add(mapResultSetToUser(rs));
             }
-            return users;
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to fetch all users", e);
+            e.printStackTrace();
         }
+        return users;
     }
 
-    public User updateUser(User newUser){
-        try(Connection connection = CustomDataSource.getInstance().getConnection()){
-            ps = connection.prepareStatement(updateUserSQL);
-            ps.setString(1,newUser.getFirstName());
-            ps.setString(2,newUser.getLastName());
-            ps.setInt(3,newUser.getAge());
-            ps.setLong(4,newUser.getId());
-            ps.executeUpdate();
-            return newUser;
+    public User updateUser(User newUser) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(updateUserSQL)) {
+
+            ps.setString(1, newUser.getFirstName());
+            ps.setString(2, newUser.getLastName());
+            ps.setInt(3, newUser.getAge());
+            ps.setLong(4, newUser.getId());
+
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                return newUser;
+            }
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to update user", e);
+            e.printStackTrace();
         }
+        return null;
     }
 
-    public void deleteUser(Long userId){
-        try(Connection connection = CustomDataSource.getInstance().getConnection()){
-            ps = connection.prepareStatement(deleteUser);
+    public void deleteUser(Long userId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(deleteUserSQL)) {
+
             ps.setLong(1, userId);
             ps.executeUpdate();
+
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to delete user by ID", e);
+            e.printStackTrace();
         }
+    }
+
+    private User mapResultSetToUser(ResultSet rs) throws SQLException {
+        return User.builder()
+                .id(rs.getLong("id"))
+                .firstName(rs.getString("firstname"))
+                .lastName(rs.getString("lastname"))
+                .age(rs.getInt("age"))
+                .build();
     }
 }

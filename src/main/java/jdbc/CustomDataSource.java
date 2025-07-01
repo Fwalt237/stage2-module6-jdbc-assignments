@@ -1,80 +1,100 @@
 package jdbc;
-
-import javax.sql.DataSource;
-
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.PrintWriter;
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.util.logging.Logger;
+import java.util.Properties;
 
 @Getter
 @Setter
 public class CustomDataSource implements DataSource {
+
     private static volatile CustomDataSource instance;
+
     private final String driver;
     private final String url;
-    private final String name;
+    private final String username;
     private final String password;
 
-    public CustomDataSource(String driver, String url, String password, String name) throws SQLException {
-        try {
-            Class.forName("org.postgresql.Driver"); // Load PostgreSQL driver
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("PostgreSQL JDBC Driver not found", e);
-        }
+    private CustomConnector connector;
+
+    private CustomDataSource(String driver, String url, String username, String password) {
         this.driver = driver;
         this.url = url;
-        this.name = name;
+        this.username = username;
         this.password = password;
-    }
+        this.connector = new CustomConnector();
 
+        try {
+            Class.forName(driver);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Failed to load database driver", e);
+        }
+    }
 
     public static CustomDataSource getInstance() {
         if (instance == null) {
             synchronized (CustomDataSource.class) {
                 if (instance == null) {
-                    try {
-                        instance = new CustomDataSource(
-                                "org.postgresql.Driver",
-                                "jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres",
-                                "postgres",
-                                "postgres"
-                        );
-                    } catch (SQLException e) {
-                        throw new RuntimeException("Failed to initialize database", e);
+                    Properties props = new Properties();
+                    try (InputStream input = CustomDataSource.class.getClassLoader().getResourceAsStream("app.properties")) {
+                        if (input == null) {
+                            throw new RuntimeException("Unable to find app.properties");
+                        }
+                        props.load(input);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed to load app.properties", e);
                     }
+
+                    String driver = props.getProperty("postgres.driver");
+                    String url = props.getProperty("postgres.url");
+                    String username = props.getProperty("postgres.name");
+                    String password = props.getProperty("postgres.password");
+
+                    instance = new CustomDataSource(driver, url, username, password);
                 }
             }
         }
         return instance;
     }
+
     @Override
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", "postgres", "postgres");
-    }
-    @Override
-    public Connection getConnection(String username, String password) throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", username, password);
+        return connector.getConnection(url, username, password);
     }
 
     @Override
-    public PrintWriter getLogWriter() throws SQLException {
+    public Connection getConnection(String username, String password) throws SQLException {
+        return connector.getConnection(url, username, password);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public java.io.PrintWriter getLogWriter() throws SQLException {
         return null;
     }
 
     @Override
-    public void setLogWriter(PrintWriter out) throws SQLException {
-
+    public void setLogWriter(java.io.PrintWriter out) throws SQLException {
+        // no-op
     }
 
     @Override
     public void setLoginTimeout(int seconds) throws SQLException {
-
+        // no-op
     }
 
     @Override
@@ -83,17 +103,7 @@ public class CustomDataSource implements DataSource {
     }
 
     @Override
-    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        return null;
-    }
-
-    @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
-    }
-
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+    public java.util.logging.Logger getParentLogger() {
+        return java.util.logging.Logger.getGlobal();
     }
 }
