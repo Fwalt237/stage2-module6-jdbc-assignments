@@ -21,7 +21,7 @@ public class CustomDataSource implements DataSource {
     private final String name;
     private final String password;
 
-    private CustomDataSource(String driver, String url, String password, String name) throws SQLException {
+    public CustomDataSource(String driver, String url, String password, String name) throws SQLException {
         try {
             Class.forName("org.postgresql.Driver"); // Load PostgreSQL driver
         } catch (ClassNotFoundException e) {
@@ -41,7 +41,7 @@ public class CustomDataSource implements DataSource {
                     try {
                         instance = new CustomDataSource(
                                 "org.postgresql.Driver",
-                                "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres",
+                                "jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres",
                                 "postgres",
                                 "postgres"
                         );
@@ -55,11 +55,11 @@ public class CustomDataSource implements DataSource {
     }
     @Override
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres", "postgres", "postgres");
+        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", "postgres", "postgres");
     }
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres", username, password);
+        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", username, password);
     }
 
     @Override
