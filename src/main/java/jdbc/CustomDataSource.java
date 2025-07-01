@@ -38,7 +38,7 @@ public class CustomDataSource implements DataSource {
         if (instance == null) {
             synchronized (CustomDataSource.class) {
                 if (instance == null) {
-                    instance = new CustomDataSource("postgresql", "jdbc:postgresql://localhost:5432/myfirstdb", "postgres", "postgres");
+                    instance = new CustomDataSource("postgresql", "jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", "postgres", "postgres");
                 }
             }
         }
@@ -47,11 +47,11 @@ public class CustomDataSource implements DataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb", "postgres", "postgres");
+        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", "postgres", "postgres");
     }
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb", username, password);
+        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", username, password);
     }
 
     @Override
