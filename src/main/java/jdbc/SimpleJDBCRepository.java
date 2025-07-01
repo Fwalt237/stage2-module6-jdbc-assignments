@@ -26,7 +26,7 @@ public class SimpleJDBCRepository {
     private static final String findUserByNameSQL = "SELECT * FROM myusers WHERE firstName=?";
     private static final String findAllUserSQL = "SELECT * FROM myusers";
 
-    public Long createUser(User newUser) throws SQLException {
+    public Long createUser(User newUser)  {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(createUserSQL);
             ps.setLong(1, newUser.getId());
@@ -35,31 +35,44 @@ public class SimpleJDBCRepository {
             ps.setInt(4,newUser.getAge());
             ps.executeUpdate();
             return newUser.getId();
+        }catch (SQLException e) {
+            throw new RuntimeException("Failed to create user", e);
         }
     }
 
 
-    public User findUserById(Long userId) throws SQLException {
+    public User findUserById(Long userId) {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(findUserByIdSQL);
             ps.setLong(1, userId);
             ResultSet rs = ps.executeQuery();
-            rs.next();
-            return User.builder().id(rs.getLong(1)).firstName(rs.getString(2)).lastName(rs.getString(3)).age(rs.getInt(4)).build();
+            if (rs.next()) {
+                return User.builder()
+                        .id(rs.getLong(1))
+                        .firstName(rs.getString(2))
+                        .lastName(rs.getString(3))
+                        .age(rs.getInt(4))
+                        .build();
+            }else{
+            return null;} // User not found
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to find user by ID", e);
         }
     }
 
-    public User findUserByName(String userName) throws SQLException {
+    public User findUserByName(String userName){
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(findUserByNameSQL);
             ps.setString(1, userName);
             ResultSet rs = ps.executeQuery();
             rs.next();
             return User.builder().id(rs.getLong(1)).firstName(rs.getString(2)).lastName(rs.getString(3)).age(rs.getInt(4)).build();
+        }catch (SQLException e) {
+            throw new RuntimeException("Failed to find user by Name", e);
         }
     }
 
-    public List<User> findAllUser() throws SQLException {
+    public List<User> findAllUser() {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             st = connection.createStatement();
             ResultSet rs = st.executeQuery(findAllUserSQL);
@@ -69,10 +82,12 @@ public class SimpleJDBCRepository {
                 users.add(user);
             }
             return users;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to fetch all users", e);
         }
     }
 
-    public User updateUser(User newUser) throws SQLException {
+    public User updateUser(User newUser){
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(updateUserSQL);
             ps.setString(1,newUser.getFirstName());
@@ -81,14 +96,18 @@ public class SimpleJDBCRepository {
             ps.setLong(4,newUser.getId());
             ps.executeUpdate();
             return newUser;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update user", e);
         }
     }
 
-    public void deleteUser(Long userId) throws SQLException {
+    public void deleteUser(Long userId){
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(deleteUser);
             ps.setLong(1, userId);
             ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete user by ID", e);
         }
     }
 }

@@ -22,11 +22,17 @@ public class CustomDataSource implements DataSource {
     private final String password;
 
     private CustomDataSource(String driver, String url, String password, String name) throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver"); // Load PostgreSQL driver
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("PostgreSQL JDBC Driver not found", e);
+        }
         this.driver = driver;
         this.url = url;
         this.name = name;
         this.password = password;
     }
+
 
     public static CustomDataSource getInstance() throws SQLException {
         if (instance == null) {
