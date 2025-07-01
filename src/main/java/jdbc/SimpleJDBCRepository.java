@@ -29,8 +29,7 @@ public class SimpleJDBCRepository {
     private static final String findUserByNameSQL = "SELECT * FROM myusers WHERE firstName=?";
     private static final String findAllUserSQL = "SELECT * FROM myusers";
 
-    public Long createUser() throws SQLException {
-        User newUser = User.builder().id(1L).firstName("John").lastName("Doe").age(30).build();
+    public Long createUser(User newUser) throws SQLException {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(createUserSQL);
             ps.setLong(1, newUser.getId());
@@ -41,6 +40,7 @@ public class SimpleJDBCRepository {
             return newUser.getId();
         }
     }
+
 
     public User findUserById(Long userId) throws SQLException {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
@@ -75,8 +75,7 @@ public class SimpleJDBCRepository {
         }
     }
 
-    public User updateUser() throws SQLException {
-        User newUser = User.builder().id(1L).firstName("Mike").lastName("Ray").age(26).build();
+    public User updateUser(User newUser) throws SQLException {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(updateUserSQL);
             ps.setString(1,newUser.getFirstName());
@@ -88,7 +87,7 @@ public class SimpleJDBCRepository {
         }
     }
 
-    private void deleteUser(Long userId) throws SQLException {
+    public void deleteUser(Long userId) throws SQLException {
         try(Connection connection = CustomDataSource.getInstance().getConnection()){
             ps = connection.prepareStatement(deleteUser);
             ps.setLong(1, userId);
