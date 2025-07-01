@@ -34,24 +34,32 @@ public class CustomDataSource implements DataSource {
     }
 
 
-    public static CustomDataSource getInstance() throws SQLException {
+    public static CustomDataSource getInstance() {
         if (instance == null) {
             synchronized (CustomDataSource.class) {
                 if (instance == null) {
-                    instance = new CustomDataSource("postgresql", "jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", "postgres", "postgres");
+                    try {
+                        instance = new CustomDataSource(
+                                "org.postgresql.Driver",
+                                "jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres",
+                                "postgres",
+                                "postgres"
+                        );
+                    } catch (SQLException e) {
+                        throw new RuntimeException("Failed to initialize database", e);
+                    }
                 }
             }
         }
         return instance;
     }
-
     @Override
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", "postgres", "postgres");
+        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres", "postgres", "postgres");
     }
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/myfirstdb?user=postgres&password=postgres", username, password);
+        return DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres?user=postgres&password=postgres", username, password);
     }
 
     @Override
