@@ -1,8 +1,6 @@
 package jdbc;
 
-
 import javax.sql.DataSource;
-import jdbc.CustomConnector.*;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -23,15 +21,14 @@ public class CustomDataSource implements DataSource {
     private final String name;
     private final String password;
 
-    private CustomDataSource(String driver, String url, String password, String name) {
+    private CustomDataSource(String driver, String url, String password, String name) throws SQLException {
         this.driver = driver;
         this.url = url;
         this.name = name;
         this.password = password;
-
     }
 
-    public static CustomDataSource getInstance() {
+    public static CustomDataSource getInstance() throws SQLException {
         if (instance == null) {
             synchronized (CustomDataSource.class) {
                 if (instance == null) {
