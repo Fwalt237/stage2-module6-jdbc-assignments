@@ -6,7 +6,7 @@ import java.util.List;
 
 public class SimpleJDBCRepository {
 
-    private static final String createUserSQL = "INSERT INTO myusers (firstname, lastname, age) VALUES (?, ?, ?) RETURNING id";
+    private static final String createUserSQL = "INSERT INTO myusers (firstname, lastname, age) VALUES (?, ?, ?)";
     private static final String updateUserSQL = "UPDATE myusers SET firstname = ?, lastname = ?, age = ? WHERE id = ?";
     private static final String deleteUserSQL = "DELETE FROM myusers WHERE id = ?";
     private static final String findUserByIdSQL = "SELECT * FROM myusers WHERE id = ?";
@@ -21,17 +21,25 @@ public class SimpleJDBCRepository {
 
     public Long createUser(User newUser) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement ps = connection.prepareStatement(createUserSQL)) {
+             PreparedStatement ps = connection.prepareStatement(createUserSQL, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, newUser.getFirstName());
             ps.setString(2, newUser.getLastName());
             ps.setInt(3, newUser.getAge());
 
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                long id = rs.getLong(1);
-                newUser.setId(id);
-                return id;
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating user failed, no rows affected.");
+            }
+
+            try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    long id = generatedKeys.getLong(1);
+                    newUser.setId(id);
+                    return id;
+                } else {
+                    throw new SQLException("Creating user failed, no ID obtained.");
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
